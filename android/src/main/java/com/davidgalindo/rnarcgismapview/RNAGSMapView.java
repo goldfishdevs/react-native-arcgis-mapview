@@ -239,62 +239,36 @@ private void startLocation(){
       maximumResult=value;
     }
 
-    public void setInitialMapCenter(ReadableArray initialCenterProps,  Integer strokeProps,@Nullable Double targetScaleProps) {
-        initialCenter=initialCenterProps;
-        stroke=strokeProps;
-        targetScale=targetScaleProps;
-        ArrayList<Point> points = new ArrayList<>();
-        for (int i = 0; i < initialCenter.size(); i++) {
-            ReadableMap item = initialCenter.getMap(i);
-            if (item == null) {
-                continue;
-            }
-            Double latitude = item.getDouble("latitude");
-            Double longitude = item.getDouble("longitude");
-            if (latitude == 0 || longitude == 0) {
-                continue;
-            }
-            Point point = new Point(longitude, latitude, SpatialReferences.getWgs84());
-            points.add(point);
-        }
-        // If no points exist, add a sample point
-        if (points.size() == 0) {
-            points.add(new Point(36.244797,-94.148060, SpatialReferences.getWgs84()));
-        }
-        if (points.size() == 1) {
-            mapView.getMap().setInitialViewpoint(new Viewpoint(points.get(0),1000));
-        } else {
-            // create a graphics overlay and add it to the map view
-    GraphicsOverlay graphicsOverlay = new GraphicsOverlay();
-    mapView.getGraphicsOverlays().add(graphicsOverlay);
+  public void setInitialMapCenter(ReadableArray initialCenterProps, Integer strokeProps, @Nullable Double targetScaleProps) {
+    initialCenter = initialCenterProps;
+    stroke = strokeProps;
+    targetScale = targetScaleProps;
+    ArrayList<Point> points = new ArrayList<>();
 
-    int colorStroke =  Color.parseColor("#B71D21");
-    int strokeValue=1;
-    if(stroke != null){
-      strokeValue=stroke;
+    for (int i = 0; i < initialCenter.size(); i++) {
+      ReadableMap item = initialCenter.getMap(i);
+      if (item == null) continue;
+
+      Double latitude = item.getDouble("latitude");
+      Double longitude = item.getDouble("longitude");
+      if (latitude == 0 || longitude == 0) continue;
+
+      points.add(new Point(longitude, latitude, SpatialReferences.getWgs84()));
     }
 
-    SimpleLineSymbol blueOutlineSymbol = new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID,colorStroke, strokeValue);
+    // If no points exist, add a sample point
+    if (points.isEmpty()) {
+      points.add(new Point(36.244797, -94.148060, SpatialReferences.getWgs84()));
+    }
 
-    Polygon polygon = new Polygon(new PointCollection(points));
-
-    // create an orange fill symbol with 20% transparency and the blue simple line symbol
-    SimpleFillSymbol polygonFillSymbol =
-      new SimpleFillSymbol(SimpleFillSymbol.Style.NULL, 0x80FF5733, blueOutlineSymbol);
-
-    // create a polygon graphic from the polygon geometry and symbol
-    Graphic polygonGraphic = new Graphic(polygon, polygonFillSymbol);
-    // add the polygon graphic to the graphics overlay
-    graphicsOverlay.getGraphics().add(polygonGraphic);
-    //set map center
-     Viewpoint viewpoint = viewpointFromPolygon(polygon,targetScale);
+    // Set map center
+    Viewpoint viewpoint = viewpointFromPoint(points.get(0).getY(), points.get(0).getX(),
+      targetScale != null ? targetScale : 1000.0);
     mapView.getMap().setInitialViewpoint(viewpoint);
+  }
 
-    }
 
-    }
-
-    public void setMinZoom(Double value) {
+  public void setMinZoom(Double value) {
         minZoom = value;
         mapView.getMap().setMinScale(minZoom);
     }
@@ -631,14 +605,13 @@ private void startLocation(){
     }
 
     // MARK: Misc.
-    public Viewpoint viewpointFromPolygon(Polygon polygon,Double targetScale) {
-        Envelope envelope = polygon.getExtent();
-        Double paddingWidth = envelope.getWidth() * targetScale;
-        Double paddingHeight = envelope.getHeight() * targetScale;
-        return new Viewpoint(new Envelope(
-                envelope.getXMin() - paddingWidth, envelope.getYMax() + paddingHeight,
-                envelope.getXMax() + paddingWidth, envelope.getYMin() - paddingHeight,
-                SpatialReferences.getWgs84()), 0);
+    public Viewpoint viewpointFromPoint(double latitude, double longitude, Double targetScale) {
+      Double paddingWidth = targetScale;
+      Double paddingHeight = targetScale;
+      return new Viewpoint(new Envelope(
+        longitude - paddingWidth, latitude + paddingHeight,
+        longitude + paddingWidth, latitude - paddingHeight,
+        SpatialReferences.getWgs84()), 0);
     }
 
 }

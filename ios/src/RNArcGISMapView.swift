@@ -409,7 +409,7 @@ public class RNArcGISMapView: AGSMapView, AGSGeoViewTouchDelegate {
 
     @objc var initialMapCenter: NSDictionary? {
         didSet{
-            handleInitCenter(polygone: initialMapCenter)
+            handleInitCenter(initialMapCenter: initialMapCenter)
         }// end didSet
     }// end initialMapCenter declaration
 
@@ -474,51 +474,39 @@ public class RNArcGISMapView: AGSMapView, AGSGeoViewTouchDelegate {
             self.routeGraphicsOverlay.graphics.add(routeGraphic)
         }
     }
-    func handleInitCenter(polygone initialMapCenter: NSDictionary?) {
+    func handleInitCenter(initialMapCenter: NSDictionary?) {
         initialCenterPoint = initialMapCenter
         var points = [AGSPoint]()
+
+        // Get the list of points from the initialMapCenter dictionary
         if let initialMapCenter = initialMapCenter?["points"] as? [NSDictionary] {
             for rawPoint in initialMapCenter {
                 if let latitude = rawPoint["latitude"] as? NSNumber, let longitude = rawPoint["longitude"] as? NSNumber {
                     points.append(AGSPoint(x: longitude.doubleValue, y: latitude.doubleValue, spatialReference: AGSSpatialReference.wgs84()))
-                } // end if let
-            }// end for loop
-        } // end initialmapcenter nil check
-        // If no points exist, add a sample point
-        if points.count == 0 {
+                }
+            }
+        }
+
+        // If no points are found, use a default point
+        if points.isEmpty {
             points.append(AGSPoint(x: 36.244797, y: -94.148060, spatialReference: AGSSpatialReference.wgs84()))
         }
-        if points.count == 1 {
-            let viewpoint = AGSViewpoint(center: points.first!, scale: 10000)
-            self.map?.initialViewpoint = viewpoint
-        } else {
 
-    let graphicsOverlay = AGSGraphicsOverlay()
-            var colorStroke = hexStringToUIColor(hex: "#B71D21")
-    self.graphicsOverlays.add(graphicsOverlay)
-
-    let polygon = AGSPolygon(points: points)
-    let stroke=initialMapCenter?["stroke"] as? CGFloat
-    let polygonSymbol = AGSSimpleFillSymbol(style: AGSSimpleFillSymbolStyle.null, color: .orange, outline: AGSSimpleLineSymbol(style: .solid, color: colorStroke, width: stroke ?? 1.0))
-    let polygonGraphic = AGSGraphic(geometry: polygon, symbol: polygonSymbol)
-    graphicsOverlay.graphics.add(polygonGraphic)
-    //set mapcenter and scale
-    let scale=initialMapCenter?["mapScale"] as? Double
-    let targetScale=scale ?? 0.5
-    let paddingWidth=polygon.extent.width * targetScale
-    let paddingHeight=polygon.extent.height * targetScale
-    let envelope = AGSEnvelope(xMin: polygon.extent.xMin-paddingWidth, yMin:polygon.extent.yMin-paddingHeight, xMax:polygon.extent.xMax+paddingWidth, yMax:polygon.extent.yMax+paddingHeight, spatialReference: .wgs84())
-
-            self.setViewpoint(AGSViewpoint(targetExtent: envelope))
-        }
-
+        // Set map center with scale
+        let scale = initialMapCenter?["mapScale"] as? Double ?? 900000
+        let viewpoint = AGSViewpoint(center: points.first!, scale: scale)
+        
+        // Set the initial viewpoint directly
+        self.map?.initialViewpoint = viewpoint
+        print("Viewpoint set with center: (\(points.first!.x), \(points.first!.y)) and scale: \(scale)")
     }
+
     public func reloadMap() {
         let maxZoom=self.map?.maxScale
         let minZoom=self.map?.minScale
         let centerCurrent =  self.center
         setUpMap()
-        handleInitCenter(polygone: initialCenterPoint)
+        handleInitCenter(initialMapCenter: initialCenterPoint)
         self.map?.minScale = minZoom ?? 0
         self.map?.maxScale = maxZoom ?? 0
         }
